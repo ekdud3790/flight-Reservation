@@ -74,8 +74,9 @@
 ![image](https://user-images.githubusercontent.com/63623995/81630582-fce67180-9440-11ea-9b2d-1e201e0c385a.png)
 
     - 도메인 서열 분리 
-        - Core Domain: 예약관리(front), 재고관리 : 없어서는 안될 핵심 서비스이며, 연간 Up-time SLA 수준은 예약관리 99.999% / 재고관리 90% 목표, 배포주기는 예약관리 1주일 1회 미만/ 고객관리 2주 1회 미만으로 함
-        - Supporting Domain:  고객관리 : 경쟁력을 내기위한 서비스이며, SLA 수준은 연간 60% 이상 uptime 목표, 배포주기는 각 팀의 자율이나 표준 스프린트 주기가 1주일 이므로 1주일 1회 이상을 기준으로 함.
+        - Core Domain: 예약관리(front) : 없어서는 안될 핵심 서비스이며, 연간 Up-time SLA 수준은 예약관리 99.999% / 결제 시스템 관리 90% 목표, 배포주기는 예약관리 1주일 1회 미만/ 고객관리 2주 1회 미만으로 함
+        - Supporting Domain: 결제 : 결제 시스템 관리 90% 목표, 배포주기는 예약관리 1주일 1회 미만/ 고객관리 2주 1회 미만으로 함
+	- General Domain : 티켓 발행 : 추가 편의 및 알람을 통한 고객 서비스 만족을 위하 서비이며, SLA 수준은 연간 60% 이상 uptime 목표, 배포주기는 각 팀의 자율이나 표준 스프린트 주기가 1주일 이므로 1주일 1회 이상을 기준으로 함.
         
 
 ### 폴리시 부착 및 컨텍스트 매핑은 MSAEZ 도구 사용하여 진행
@@ -85,7 +86,7 @@
 
 ![image](https://user-images.githubusercontent.com/63623995/81631247-631fc400-9442-11ea-91d9-feca89fdb137.png)
 
-- 도서 재고 리스트인 View Model 추가
+- 예약 현황 리스트인 View Model 추가
 - customermanagement 서비스 중 예약 취소 시 알람 누락
 
 ### 2차 완성된 모형
@@ -99,20 +100,19 @@
 
 ![image](https://user-images.githubusercontent.com/63623995/81639169-2b227c00-9456-11ea-8e93-3a30d4344660.png)
 
-- customermanagement에서 이벤트 만 받아서 카톡 알람 처리하는 것으로 완결
 - 각 Aggregte Attribute
-  - reservation : orderid, userid, bookid, status
-  - stock : bookid, qty
+  - Reservation : userId, status, userMoney, flightId
+  - payment : price, flightId, userId
+  - TicketIssue : flightId
 
 
 ### 완성본에 대한 기능적/비기능적 요구사항을 커버하는지 검증
 
-1. 재고 관리자가 도서 입고 처리를 한다. (ok)
-2. 고객이 도서 입고 리스트를 보고 도서 예약 신청을 한다.(View 추가로 ok)
-3. 도서 재고가 있으면 예약에 성공한다.(ok)
-4. 도서 재고가 없으면 예약에 실패한다.(ok)
-5. 고객이 도서 예약을 취소한다.(ok)
-6. 예약이 성공되면 카톡 등으로 알람을 보낸다.(ok)
+1. 고객의 잔고보다 비행기표값이 싸면 예약에 성공한다.
+2. 고객의 잔고보다 비행기표값이 비싸면 예약에 실패한다.
+3. 고객이 항공권 예약을 취소한다.
+4. 예약/결제/티켓 발행이 진행되면 예약 상태가 알람으로 보내진다.
+5. 고객이 현재 예약 상황을 대쉬보드로 확인할 수 있다. (View 추가로 ok)
 
 --> 완성된 모델은 모든 기능 요구사항을 커버함.
 
@@ -120,7 +120,13 @@
 
  - 마이크로 서비스를 넘나드는 시나리오에 대한 트랜잭션 처리
   : 모든 inter-microservice 트랜잭션이 데이터 일관성의 시점이 크리티컬하지 않은 모든 경우가 대부분이라 판단, Eventual Consistency 를 기본으로 채택함.
-    
+ - 장애격리
+  : 결제 시스템이 수행되지 않더라도 예약은 365일 24시간 받을 수 있어야 한다. Async (event-driven), Eventual Consistency
+  : 결제 시스템이 과중되면 예약을 잠시동안 받지 않고 결제를 잠시후에 하도록 유도한다. user에게는 Pending상태로 보여준다. Circuit breaker, fallback
+ - 성능
+  : 고객이 예약 상황을 예약 리스트(프론트엔드)에서 확인할 수 있어야 한다. CQRS
+  : 예약 진행 상황을 카톡 등으로 알림을 줄 수 있어야 한다. Event driven
+
 
 ## 헥사고날 아키텍처 다이어그램 도출
     
