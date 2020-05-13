@@ -41,7 +41,8 @@
 1. 트랜잭션
     1. 모든 트랜잭션은 비동기 식으로 구성한다.
 2. 장애격리
-    1. 재고 관리 기능이 수행되지 않더라도 도서 예약은 365일 24시간 받을 수 있어야 한다. Async (event-driven), Eventual Consistency
+    1. 결제 시스템이 수행되지 않더라도 예약은 365일 24시간 받을 수 있어야 한다. Async (event-driven), Eventual Consistency
+    1. 결제 시스템이 과중되면 예약을 잠시동안 받지 않고 결제를 잠시후에 하도록 유도한다. user에게는 Pending상태로 보여준다. Circuit breaker, fallback
 3. 성능
     1. 고객이 예약 상황을 예약 리스트(프론트엔드)에서 확인할 수 있어야 한다. CQRS
     1. 예약 진행 상황을 카톡 등으로 알림을 줄 수 있어야 한다. Event driven
