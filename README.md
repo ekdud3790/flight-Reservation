@@ -116,7 +116,6 @@
 
 ## 헥사고날 아키텍처 다이어그램 도출
     
-![image](https://user-images.githubusercontent.com/63623995/81639426-e0553400-9456-11ea-8346-be1d2d681305.png)
 
     - Chris Richardson, MSA Patterns 참고하여 Inbound adaptor와 Outbound adaptor를 구분함
     - 호출관계에서 PubSub 표현
@@ -128,13 +127,6 @@
 분석/설계 단계에서 도출된 헥사고날 아키텍처에 따라, 각 BC별로 대변되는 마이크로 서비스들을 스프링부트로 구현하였다. 구현한 각 서비스를 로컬에서 실행하는 방법은 아래와 같다 (각자의 포트넘버는 8081 ~ 8083 이다)
 
 ```
-cd bookreservation
-mvn spring-boot:run
-
-cd stockmanagement
-mvn spring-boot:run 
-
-cd customermanagement
 mvn spring-boot:run  
 
 ```
