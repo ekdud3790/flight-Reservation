@@ -68,7 +68,7 @@
 ### 어그리게잇으로 묶기
 ![image](https://user-images.githubusercontent.com/63623995/81630407-77fb5800-9440-11ea-8957-8cc538b21489.png)
 
-    - 예약, 재고관리, 고객관리 중심으로 그와 연결된 command 와 event 들에 의하여 트랜잭션이 유지되어야 하는 단위로 묶어줌
+    - 예약, 결제, 발행 중심으로 그와 연결된 command 와 event 들에 의하여 트랜잭션이 유지되어야 하는 단위로 묶어줌
 
 ### 바운디드 컨텍스트로 묶기
 ![image](https://user-images.githubusercontent.com/63623995/81630582-fce67180-9440-11ea-9b2d-1e201e0c385a.png)
