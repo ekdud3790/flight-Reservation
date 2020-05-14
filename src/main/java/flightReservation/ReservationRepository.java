@@ -1,8 +1,11 @@
 package flightReservation;
 
-import org.springframework.data.repository.PagingAndSortingRepository;
+import org.springframework.data.repository.CrudRepository;
 
-public interface ReservationRepository extends PagingAndSortingRepository<Reservation, Long>{
+import java.util.Optional;
 
+public interface ReservationRepository extends CrudRepository<Reservation, Long>{
+
+    Optional<Reservation> findByflightId(String flightId);
 
 }

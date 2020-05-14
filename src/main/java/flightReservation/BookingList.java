@@ -9,17 +9,18 @@ public class BookingList {
 
         @Id
         @GeneratedValue(strategy=GenerationType.AUTO)
-        private Long id;
+        private String id;
         private String userId;
         private String reserveStatus;
-        private String reserveId;
+        private String flightId;
+        private Long userMoney;
 
 
-        public Long getId() {
+        public String getId() {
             return id;
         }
 
-        public void setId(Long id) {
+        public void setId(String id) {
             this.id = id;
         }
         public String getUserId() {
@@ -36,12 +37,19 @@ public class BookingList {
         public void setReserveStatus(String reserveStatus) {
             this.reserveStatus = reserveStatus;
         }
-        public String getReserveId() {
-            return reserveId;
+        public String getFlightId() {
+            return flightId;
         }
 
-        public void setReserveId(String reserveId) {
-            this.reserveId = reserveId;
+        public void setFlightId(String flightId) {
+            this.flightId = flightId;
+        }
+        public Long getUserMoney() {
+            return userMoney;
+        }
+
+        public void setUserMoney(Long userMoney) {
+            this.userMoney = userMoney;
         }
 
 }

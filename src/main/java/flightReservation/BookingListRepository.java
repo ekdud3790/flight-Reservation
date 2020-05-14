@@ -7,9 +7,7 @@ import java.util.List;
 
 public interface BookingListRepository extends CrudRepository<BookingList, Long> {
 
-    List<BookingList> findByReserveId(String reserveId);
-    List<BookingList> findByReserveId(String reserveId);
-    List<BookingList> findByReserveId(String reserveId);
-    List<BookingList> findByReserveId(String reserveId);
+    List<BookingList> findByUserId(String userId);
 
+        void deleteByFlightId(String flightId);
 }

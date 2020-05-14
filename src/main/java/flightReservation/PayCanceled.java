@@ -6,6 +6,8 @@ public class PayCanceled extends AbstractEvent {
     private Long id;
     private Long price;
     private String flightId;
+    private String userId;
+    private String status;
 
     public Long getId() {
         return id;
@@ -27,5 +29,19 @@ public class PayCanceled extends AbstractEvent {
 
     public void setFlightId(String flightId) {
         this.flightId = flightId;
+    }
+    public String getUserId() {
+        return userId;
+    }
+
+    public void setUserId(String userId) {
+        this.userId = userId;
+    }
+    public String getStatus() {
+        return status;
+    }
+
+    public void setStatus(String status) {
+        this.status = status;
     }
 }

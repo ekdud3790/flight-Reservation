@@ -1,7 +1,16 @@
 package flightReservation;
 
 import javax.persistence.*;
+
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import flightReservation.config.kafka.KafkaProcessor;
 import org.springframework.beans.BeanUtils;
+import org.springframework.messaging.MessageChannel;
+import org.springframework.messaging.MessageHeaders;
+import org.springframework.messaging.support.MessageBuilder;
+import org.springframework.util.MimeTypeUtils;
+
 import java.util.List;
 
 @Entity
@@ -18,23 +27,72 @@ public class Reservation {
 
     @PostPersist
     public void onPostPersist(){
-        ResvCanceled resvCanceled = new ResvCanceled();
-        BeanUtils.copyProperties(this, resvCanceled);
-        resvCanceled.publishAfterCommit();
-
-
         Requested requested = new Requested();
-        BeanUtils.copyProperties(this, requested);
-        requested.publishAfterCommit();
+        requested.setUserId(this.getUserId());
+        requested.setFlightId(this.getFlightId());
+        requested.setUserMoney(this.getUserMoney());
+        ObjectMapper objectMapper = new ObjectMapper();
+        String json = null;
 
+        try {
+            json = objectMapper.writeValueAsString(requested);
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException("JSON format exception", e);
+        }
+
+        KafkaProcessor processor = Application.applicationContext.getBean(KafkaProcessor.class);
+        MessageChannel outputChannel = processor.outboundTopic();
+
+        outputChannel.send(MessageBuilder
+                .withPayload(json)
+                .setHeader(MessageHeaders.CONTENT_TYPE, MimeTypeUtils.APPLICATION_JSON)
+                .build());
 
     }
 
     @PostUpdate
     public void onPostUpdate(){
-        Reserved reserved = new Reserved();
-        BeanUtils.copyProperties(this, reserved);
-        reserved.publishAfterCommit();
+        if("payCanceled".contains(this.getStatus())){
+            PayCanceled canceled = new PayCanceled();
+            canceled.setFlightId(this.getFlightId());
+            ObjectMapper objectMapper = new ObjectMapper();
+            String json = null;
+
+            try {
+                json = objectMapper.writeValueAsString(canceled);
+            } catch (JsonProcessingException e) {
+                throw new RuntimeException("JSON format exception", e);
+            }
+
+            KafkaProcessor processor = Application.applicationContext.getBean(KafkaProcessor.class);
+            MessageChannel outputChannel = processor.outboundTopic();
+
+            outputChannel.send(MessageBuilder
+                    .withPayload(json)
+                    .setHeader(MessageHeaders.CONTENT_TYPE, MimeTypeUtils.APPLICATION_JSON)
+                    .build());
+        }else{
+            Reserved reserved = new Reserved();
+            reserved.setUserId(this.getUserId());
+            reserved.setFlightId(this.getFlightId());
+            reserved.setStatus(this.getStatus());
+            ObjectMapper objectMapper = new ObjectMapper();
+            String json = null;
+
+            try {
+                json = objectMapper.writeValueAsString(reserved);
+            } catch (JsonProcessingException e) {
+                throw new RuntimeException("JSON format exception", e);
+            }
+
+            KafkaProcessor processor = Application.applicationContext.getBean(KafkaProcessor.class);
+            MessageChannel outputChannel = processor.outboundTopic();
+
+            outputChannel.send(MessageBuilder
+                    .withPayload(json)
+                    .setHeader(MessageHeaders.CONTENT_TYPE, MimeTypeUtils.APPLICATION_JSON)
+                    .build());
+        }
 
 
     }

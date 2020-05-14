@@ -10,40 +10,71 @@ import org.springframework.stereotype.Service;
 
 @Service
 public class PolicyHandler{
-    
+    @Autowired
+    ReservationRepository reservationRepository;
+
     @StreamListener(KafkaProcessor.INPUT)
     public void wheneverPayCompleted_UpdateStatus(@Payload PayCompleted payCompleted){
 
         if(payCompleted.isMe()){
-            System.out.println("##### listener UpdateStatus : " + payCompleted.toJson());
+            System.out.println("##### payment Complete : " + payCompleted.toJson());
+            reservationRepository.findByflightId(payCompleted.getFlightId())
+                    .ifPresent(
+                            reservation -> {
+                                reservation.setUserMoney(reservation.getUserMoney()-100);
+                                reservation.setStatus("paySucceed");
+                                reservationRepository.save(reservation);
+                            }
+                    );
+            ;
         }
     }
+
     @StreamListener(KafkaProcessor.INPUT)
     public void wheneverPayFailed_UpdateStatus(@Payload PayFailed payFailed){
 
         if(payFailed.isMe()){
-            System.out.println("##### listener UpdateStatus : " + payFailed.toJson());
+            System.out.println("##### payment Fail : " + payFailed.toJson());
+            reservationRepository.findByflightId(payFailed.getFlightId())
+                    .ifPresent(
+                            reservation -> {
+                                reservation.setUserMoney(reservation.getUserMoney()+0);
+                                reservation.setStatus("payFailed");
+                                reservationRepository.save(reservation);
+                            }
+                    );
+            ;
+
         }
     }
     @StreamListener(KafkaProcessor.INPUT)
     public void wheneverPayCanceled_UpdateStatus(@Payload PayCanceled payCanceled){
 
         if(payCanceled.isMe()){
-            System.out.println("##### listener UpdateStatus : " + payCanceled.toJson());
+            System.out.println("##### payment Cancel : " + payCanceled.toJson());
+            reservationRepository.findByflightId(payCanceled.getFlightId())
+                    .ifPresent(
+                            reservation -> {
+                                reservation.setUserMoney(reservation.getUserMoney()+100);
+                                reservation.setStatus("payCanceled");
+                                reservationRepository.save(reservation);
+                            }
+                    );
+            ;
         }
     }
     @StreamListener(KafkaProcessor.INPUT)
     public void wheneverTicketIssued_UpdateStatus(@Payload TicketIssued ticketIssued){
 
         if(ticketIssued.isMe()){
-            System.out.println("##### listener UpdateStatus : " + ticketIssued.toJson());
+            System.out.println("##### TicketIssue : " + ticketIssued.toJson());
         }
     }
     @StreamListener(KafkaProcessor.INPUT)
     public void wheneverTicketIssueCanceled_UpdateStatus(@Payload TicketIssueCanceled ticketIssueCanceled){
 
         if(ticketIssueCanceled.isMe()){
-            System.out.println("##### listener UpdateStatus : " + ticketIssueCanceled.toJson());
+            System.out.println("##### TicketIssue Cancel : " + ticketIssueCanceled.toJson());
         }
     }
 

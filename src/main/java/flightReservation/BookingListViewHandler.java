@@ -24,7 +24,7 @@ public class BookingListViewHandler {
                 // view 객체 생성
                 BookingList bookingList = new BookingList();
                 // view 객체에 이벤트의 Value 를 set 함
-                bookingList.setReserveId(reserved.getReserveId);
+                bookingList.setFlightId(reserved.getFlightId());
                 // view 레파지 토리에 save
                 bookingListRepository.save(bookingList);
             }
@@ -39,10 +39,10 @@ public class BookingListViewHandler {
         try {
             if (payCompleted.isMe()) {
                 // view 객체 조회
-                List<BookingList> bookingListList = bookingListRepository.findByReserveId(payCompleted.getReserveId);
+                List<BookingList> bookingListList = bookingListRepository.findByUserId(payCompleted.getUserId());
                 for(BookingList bookingList : bookingListList){
                     // view 객체에 이벤트의 eventDirectValue 를 set 함
-                    bookingList.setReserveStatus(payCompleted.getStatus);
+                    bookingList.setUserMoney(payCompleted.getPrice());
                     // view 레파지 토리에 save
                     bookingListRepository.save(bookingList);
                 }
@@ -52,31 +52,14 @@ public class BookingListViewHandler {
         }
     }
     @StreamListener(KafkaProcessor.INPUT)
-    public void whenRoomRejected_then_UPDATE_2(@Payload RoomRejected roomRejected) {
-        try {
-            if (roomRejected.isMe()) {
-                // view 객체 조회
-                List<BookingList> bookingListList = bookingListRepository.findByReserveId(roomRejected.getReserveId);
-                for(BookingList bookingList : bookingListList){
-                    // view 객체에 이벤트의 eventDirectValue 를 set 함
-                    bookingList.setReserveStatus(roomRejected.getStatus);
-                    // view 레파지 토리에 save
-                    bookingListRepository.save(bookingList);
-                }
-            }
-        }catch (Exception e){
-            e.printStackTrace();
-        }
-    }
-    @StreamListener(KafkaProcessor.INPUT)
-    public void whenPayFailed_then_UPDATE_3(@Payload PayFailed payFailed) {
+    public void whenPayFailed_then_UPDATE_2(@Payload PayFailed payFailed) {
         try {
             if (payFailed.isMe()) {
                 // view 객체 조회
-                List<BookingList> bookingListList = bookingListRepository.findByReserveId(payFailed.getReserveId);
+                List<BookingList> bookingListList = bookingListRepository.findByUserId(payFailed.getUserId());
                 for(BookingList bookingList : bookingListList){
                     // view 객체에 이벤트의 eventDirectValue 를 set 함
-                    bookingList.setReserveStatus(payFailed.getStatus);
+                    bookingList.setUserMoney(payFailed.getPrice());
                     // view 레파지 토리에 save
                     bookingListRepository.save(bookingList);
                 }
@@ -86,14 +69,14 @@ public class BookingListViewHandler {
         }
     }
     @StreamListener(KafkaProcessor.INPUT)
-    public void whenPayCanceled_then_UPDATE_4(@Payload PayCanceled payCanceled) {
+    public void whenPayCanceled_then_UPDATE_3(@Payload PayCanceled payCanceled) {
         try {
             if (payCanceled.isMe()) {
                 // view 객체 조회
-                List<BookingList> bookingListList = bookingListRepository.findByReserveId(payCanceled.getReserveId);
+                List<BookingList> bookingListList = bookingListRepository.findByUserId(payCanceled.getUserId());
                 for(BookingList bookingList : bookingListList){
                     // view 객체에 이벤트의 eventDirectValue 를 set 함
-                    bookingList.setReserveStatus(payCanceled.getStatus);
+                    bookingList.setUserMoney(payCanceled.getPrice());
                     // view 레파지 토리에 save
                     bookingListRepository.save(bookingList);
                 }
@@ -103,4 +86,15 @@ public class BookingListViewHandler {
         }
     }
 
+    @StreamListener(KafkaProcessor.INPUT)
+    public void whenResvCanceled_then_DELETE_1(@Payload ResvCanceled resvCanceled) {
+        try {
+            if (resvCanceled.isMe()) {
+                // view 레파지 토리에 삭제 쿼리
+                bookingListRepository.deleteByFlightId(resvCanceled.getFlightId());
+            }
+        }catch (Exception e){
+            e.printStackTrace();
+        }
+    }
 }
