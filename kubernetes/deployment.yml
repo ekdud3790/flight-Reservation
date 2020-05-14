@@ -1,22 +1,22 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: FlightReservation
+  name: flightreservation
   labels:
-    app: FlightReservation
+    app: flightreservation
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: FlightReservation
+      app: flightreservation
   template:
     metadata:
       labels:
-        app: FlightReservation
+        app: flightreservation
     spec:
       containers:
-        - name: FlightReservation
-          image: username/FlightReservation:latest
+        - name: flightreservation
+          image: username/flightreservation:latest
           ports:
             - containerPort: 8080
           readinessProbe:
