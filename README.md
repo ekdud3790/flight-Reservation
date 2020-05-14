@@ -51,7 +51,6 @@
 # 분석/설계
 
 ## TO-BE 조직 (Vertically-Aligned)
-![image](https://user-images.githubusercontent.com/63623995/81637644-cf55f400-9451-11ea-9cf3-1b599eb21e5d.png)
 
 
 ## Event Storming 결과
@@ -59,19 +58,6 @@
 
 
 ### 이벤트 도출
-원할한 토론, 이해를 위해 event-storming 초반은 한글로 작성 및 진행
-![image](https://user-images.githubusercontent.com/63623995/81629770-e9d2a200-943e-11ea-8a95-02c1bae75b1b.png)
-
-### 액터, 커맨드 부착하여 읽기 좋게
-![image](https://user-images.githubusercontent.com/63623995/81630226-fe636a00-943f-11ea-93d5-67f851180950.png)
-
-### 어그리게잇으로 묶기
-![image](https://user-images.githubusercontent.com/63623995/81630407-77fb5800-9440-11ea-8957-8cc538b21489.png)
-
-    - 예약, 결제, 발행 중심으로 그와 연결된 command 와 event 들에 의하여 트랜잭션이 유지되어야 하는 단위로 묶어줌
-
-### 바운디드 컨텍스트로 묶기
-![image](https://user-images.githubusercontent.com/63623995/81630582-fce67180-9440-11ea-9b2d-1e201e0c385a.png)
 
     - 도메인 서열 분리 
         - Core Domain: 예약관리(front) : 없어서는 안될 핵심 서비스이며, 연간 Up-time SLA 수준은 예약관리 99.999% / 결제 시스템 관리 90% 목표, 배포주기는 예약관리 1주일 1회 미만/ 고객관리 2주 1회 미만으로 함
@@ -84,7 +70,6 @@
 
 ### 완성된 모형
 
-![image](https://user-images.githubusercontent.com/63623995/81639169-2b227c00-9456-11ea-8e93-3a30d4344660.png)
 
 - 각 Aggregte Attribute
   - Reservation : userId, status, userMoney, flightId
