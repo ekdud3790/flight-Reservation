@@ -82,20 +82,6 @@
 ### 폴리시 부착 및 컨텍스트 매핑은 MSAEZ 도구 사용하여 진행
 모든 언어를 영어로 변환하여, 유비쿼터스 랭귀지로 소스코드 작성 기반 마련
 
-### 1차 완성된 모형
-
-![image](https://user-images.githubusercontent.com/63623995/81631247-631fc400-9442-11ea-91d9-feca89fdb137.png)
-
-- 예약 현황 리스트인 View Model 추가
-- customermanagement 서비스 중 예약 취소 시 알람 누락
-
-### 2차 완성된 모형
-
-![image](https://user-images.githubusercontent.com/63623995/81637021-3e324d80-9450-11ea-92f6-a8a9b61f2950.png)
-
-- 고객이 예약 취소 시 고객 관리 서비스 통해 알람 발송되도록 비동기식 커넥션 추가
-- customermanagement 영역 Event가 무의미 하여, aggregate/event 제거 Needs 발생
-
 ### 완성된 모형
 
 ![image](https://user-images.githubusercontent.com/63623995/81639169-2b227c00-9456-11ea-8e93-3a30d4344660.png)
@@ -158,116 +144,93 @@ mvn spring-boot:run
 - 각 서비스내에 도출된 핵심 Aggregate Root 객체를 Entity 로 선언하였다: (예시는 stock 마이크로 서비스). 
 
 ```
-package bookrental;
+package flightReservation;
 
 import javax.persistence.*;
-
-import bookrental.config.kafka.KafkaProcessor;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import flightReservation.config.kafka.KafkaProcessor;
+import org.springframework.beans.BeanUtils;
 import org.springframework.messaging.MessageChannel;
 import org.springframework.messaging.MessageHeaders;
 import org.springframework.messaging.support.MessageBuilder;
 import org.springframework.util.MimeTypeUtils;
 
+import java.util.List;
+
 @Entity
-@Table(name="Stock_table")
-public class Stock {
+@Table(name="Payment_table")
+public class Payment {
 
     @Id
     @GeneratedValue(strategy=GenerationType.AUTO)
     private Long id;
-    private String bookid;
-    private Long qty;
+    private Long price;
+    private String flightId;
+    private String userId;
     private String status;
-
-    @PostPersist
-    public void onPostPersist(){
-        Incomed incomed = new Incomed();
-        incomed.setId(this.getId());
-        incomed.setBookid(this.getBookid());
-        incomed.setQty(this.getQty());
-        ObjectMapper objectMapper = new ObjectMapper();
-        String json = null;
-
-        try {
-            json = objectMapper.writeValueAsString(incomed);
-        } catch (JsonProcessingException e) {
-            throw new RuntimeException("JSON format exception", e);
-        }
-
-        KafkaProcessor processor = Application.applicationContext.getBean(KafkaProcessor.class);
-        MessageChannel outputChannel = processor.outboundTopic();
-        outputChannel.send(MessageBuilder
-                .withPayload(json)
-                .setHeader(MessageHeaders.CONTENT_TYPE, MimeTypeUtils.APPLICATION_JSON)
-                .build());
-    }
 
     @PostUpdate
     public void onPostUpdate(){
         String status = this.getStatus();
-        
-        if(status.equals("revSucceeded")){
-            Revsuccessed revsuccessed = new Revsuccessed();
-            revsuccessed.setId(this.getId());
-            revsuccessed.setBookid(this.getBookid());
+        System.out.println("==============onPostUpdate ====== status : "+ status);
+
+        if(status.equals("paySucceeded")){
+            PayCompleted paycompleted = new PayCompleted();
+
+            paycompleted.setId(this.getId());
+            paycompleted.setFlightId(this.getFlightId());
             ObjectMapper objectMapper = new ObjectMapper();
             String json = null;
 
             try {
-                json = objectMapper.writeValueAsString(revsuccessed);
+                json = objectMapper.writeValueAsString(paycompleted);
             } catch (JsonProcessingException e) {
                 throw new RuntimeException("JSON format exception", e);
             }
 
+
             KafkaProcessor processor = Application.applicationContext.getBean(KafkaProcessor.class);
             MessageChannel outputChannel = processor.outboundTopic();
+
             outputChannel.send(MessageBuilder
                     .withPayload(json)
                     .setHeader(MessageHeaders.CONTENT_TYPE, MimeTypeUtils.APPLICATION_JSON)
                     .build());
 
-        } else if(status.equals("revFailed")){
-            Revfailed revfailed = new Revfailed();
-            revfailed.setId(this.getId());
-            revfailed.setBookid(this.getBookid());
+
+            /*BeanUtils.copyProperties(this, revsuccessed);
+            revsuccessed.publishAfterCommit();*/
+       }else if(status.equals("payFail")){
+            PayFailed payfail = new PayFailed();
+
+            payfail.setId(this.getId());
+            payfail.setFlightId(this.getFlightId());
             ObjectMapper objectMapper = new ObjectMapper();
             String json = null;
 
             try {
-                json = objectMapper.writeValueAsString(revfailed);
+                json = objectMapper.writeValueAsString(payfail);
             } catch (JsonProcessingException e) {
                 throw new RuntimeException("JSON format exception", e);
             }
 
-            KafkaProcessor processor = Application.applicationContext.getBean(KafkaProcessor.class);
-            MessageChannel outputChannel = processor.outboundTopic();
-            outputChannel.send(MessageBuilder
-                    .withPayload(json)
-                    .setHeader(MessageHeaders.CONTENT_TYPE, MimeTypeUtils.APPLICATION_JSON)
-                    .build());
-        } else if(status.equals("revCanceled")) {
-            Revcanceled revcanceled = new Revcanceled();
-            revcanceled.setId(this.getId());
-            revcanceled.setBookid(this.getBookid());
-            ObjectMapper objectMapper = new ObjectMapper();
-            String json = null;
 
-            try {
-                json = objectMapper.writeValueAsString(revcanceled);
-            } catch (JsonProcessingException e) {
-                throw new RuntimeException("JSON format exception", e);
-            }
-            
             KafkaProcessor processor = Application.applicationContext.getBean(KafkaProcessor.class);
             MessageChannel outputChannel = processor.outboundTopic();
+
             outputChannel.send(MessageBuilder
                     .withPayload(json)
                     .setHeader(MessageHeaders.CONTENT_TYPE, MimeTypeUtils.APPLICATION_JSON)
                     .build());
+
+
+            /*BeanUtils.copyProperties(this, revsuccessed);
+            revsuccessed.publishAfterCommit();*/
         }
+
     }
+
 
     public Long getId() {
         return id;
@@ -276,108 +239,74 @@ public class Stock {
     public void setId(Long id) {
         this.id = id;
     }
-    public String getBookid() {
-        return bookid;
+    public Long getPrice() {
+        return price;
     }
 
-    public void setBookid(String bookid) {
-        this.bookid = bookid;
+    public void setPrice(Long price) {
+        this.price = price;
     }
-    public Long getQty() {
-        return qty;
-    }
-
-    public void setQty(Long qty) {
-        this.qty = qty;
+    public String getFlightId() {
+        return flightId;
     }
 
-    public String getStatus() {
-        return status;
+    public void setFlightId(String flightId) {
+        this.flightId = flightId;
+    }
+    public String getUserId() {
+        return userId;
     }
 
-    public void setStatus(String status) {
-        this.status = status;
+    public void setUserId(String userId) {
+        this.userId = userId;
     }
+
+    public void setStatus(String status){this.status = status;}
+    public String getStatus(){return status;}
+
+
+
 }
 
 ```
 - Entity Pattern 과 Repository Pattern 을 적용하여 JPA 를 통하여 다양한 데이터소스 유형 (RDB or NoSQL) 에 대한 별도의 처리가 없도록 데이터 접근 어댑터를 자동 생성하기 위하여 Spring Data REST 의 RestRepository 를 적용하였다
 ```
-package bookrental;
+package flightReservation;
 
 import org.springframework.data.repository.CrudRepository;
+
 import java.util.Optional;
 
-public interface StockRepository extends CrudRepository<Stock, Long>{
-    Optional<Stock> findByBookid(String BookId);    # bookid로 찾기 위해 선언
+public interface PaymentRepository extends CrudRepository<Payment, Long>{
+
+    Optional<Payment> findByflightId(String flightId);
+
 }
 ```
 - 적용 후 REST API 의 테스트
 ```
 성공 케이스
-// 재고 서비스 입고
-1. http POST localhost:8082/stocks bookid="1" qty=3
 
-// 예약 서비스에서 입고된 책 예약
-2. http POST localhost:8081/reservations bookid="1" userid="test1"
+//먼저 Payment를 하기 위해 항공권 정보를 입력
+http POST  localhost:8082/payments flightId='Japan'              
 
-// 예약 서비스에서 고객의 예약 상태가 '성공'임을 확인
+//예약 신청
+1. http POST localhost:8081/reservations flightId='Japan' userMoney=150 userId='ew' status='requested'
+
+// 예약 서비스에서 고객의 예약 상태가 결제 완료 임을 확인, 고객으 돈이 차감됨을 확인
 3. http GET localhost:8081/reservations/*
 ```
-![image](https://user-images.githubusercontent.com/63623995/81771217-5de37780-951d-11ea-9918-0d6b6dc30531.png)
-```
-// 재고 서비스에서 고객이 예약한 책의 재고 감소를 확인
-4. http GET localhost:8082/stocks/*
-```
-![image](https://user-images.githubusercontent.com/63623995/81771292-8c615280-951d-11ea-8d2a-587ece40b771.png)
-```
-// 고객 서비스 콘솔을 통해 고객의 예약이 정상적으로 완료 되었는지 확인
-```
-![image](https://user-images.githubusercontent.com/63623995/81771166-3be9f500-951d-11ea-87bb-43f9f39b26d4.png)
 ```
 
 실패 케이스
-// 재고 서비스 입고 (단, 테스트를 위한 수량은 '0')
-1. http POST localhost:8082/stocks bookid="2" qty=0
+//먼저 Payment를 하기 위해 항공권 정보를 입력
+http POST  localhost:8082/payments flightId='China'              
 
-// 예약 서비스에서 입고된 책 예약
-2. http POST localhost:8081/reservations userid="user" bookid="2"
+//예약 신청
+1. http POST localhost:8081/reservations flightId='China' userMoney=70 userId='ew' status='requested'
 
-// 예약 서비스에서 고객의 예약 상태가 '실패'임을 확인
+// 예약 서비스에서 고객의 예약 상태가 결제 실패 임을 확인(돈이 모자라서 차감이 되지 않음)
 3. http GET localhost:8081/reservations/*
-
-취소 케이스
-// 재고 서비스 입고
-1. http POST localhost:8082/stocks bookid="1" qty=3
-
-// 예약 서비스에서 입고된 책 예약
-2. http POST localhost:8081/reservations bookid="1" userid="test1"
-
-// 재고 서비스에서 고객이 예약한 책의 재고 감소를 확인
-3. http GET localhost:8082/stocks/*
-```
-![image](https://user-images.githubusercontent.com/63623995/81771292-8c615280-951d-11ea-8d2a-587ece40b771.png)
-```
-// 예약 서비스에서 예약한 책을 취소 요청함
-4. http PATCH localhost:8081/reservations/* status="Canceled"
-```
-![image](https://user-images.githubusercontent.com/63623995/81771410-d5b1a200-951d-11ea-85d5-c6a81bcba0fd.png)
-```
-// 예약 서비스에서 고객의 예약 상태가 '취소'임을 확인
-5. http GET localhost:8081/reservations/*
-```
-![image](https://user-images.githubusercontent.com/63623995/81771432-ec57f900-951d-11ea-8940-38e24c625ee6.png)
-```
-// 재고 서비스에서 고객이 취소 요청한 책의 수량이 증가하였는지 확인한다.
-6. http GET localhost:8082/stocks/*
-```
-![image](https://user-images.githubusercontent.com/63623995/81772095-db0fec00-951f-11ea-8c75-717ebcefed41.png)
-```
-// 고객 서비스 콘솔을 통해 고객의 예약이 정상적으로 취소 되었는지 확인
-```
-![image](https://user-images.githubusercontent.com/63623995/81772123-faa71480-951f-11ea-9d81-03253d199c3d.png)
-
-
 
 ## 퍼시스턴스
 앱프런트(app) 는 H2DB를 활용하였으며 VO 선언시 @Entity 마킹되었음, 기존의 Entity Pattern 과 Repository Pattern 적용이 가능하도록 구현하였다.
@@ -392,28 +321,28 @@ public class Reservation {
     @Id
     @GeneratedValue(strategy=GenerationType.AUTO)
     private Long id;
-    private String userid;
-    private String bookid;
+    private String userId;
     private String status;
+    private Long userMoney;
+    private String flightId;
     ..
 
 
 # ReservationRepository.java
 
-public interface ReservationRepository extends CrudRepository<Reservation, Long> {
-    Optional<Reservation> findBybookid(String BookId);
+public interface ReservationRepository extends CrudRepository<Reservation, Long>{
+    Optional<Reservation> findByflightId(String flightId);
 }
 ```
 
 ## 비동기식 호출 / 시간적 디커플링 / 장애격리 / 최종 (Eventual) 일관성 테스트
 
 
-도서예약이 이루어진 후에 고객관리시스템으로 이를 알려주는 행위는 동기식이 아니라 비 동기식으로 처리하여 고객관리시스템의 처리를 위하여 도서예약이 블로킹 되지 않도록 처리한다.
+항공권 예약이 이루어진 후에 결제 시스템으로 연결되느 행위는 행위는 동기식이 아니라 비 동기식으로 처리하여 예약 처리를 위하여 항공권 블로킹 되지 않도록 처리한다.
  
-- 이를 위하여 도서예약 기록을 남긴 후에 곧바로 예약 요청이 되었다는 도메인 이벤트를 카프카로 송출한다
+- 이를 위하여 항공권 예약 기록을 남긴 후에 곧바로 예약 요청이 되었다는 도메인 이벤트를 카프카로 송출한다
  
 ```
-package bookrental;
 
 @Entity
 @Table(name="Reservation_table")
@@ -423,9 +352,9 @@ public class Reservation {
     @PostPersist
     public void onPostPersist(){
         Requested requested = new Requested();
-        requested.setOrderId(this.getId());
-        requested.setUserid(this.getUserid());
-        requested.setBookid(this.getBookid());
+        requested.setUserId(this.getUserId());
+        requested.setFlightId(this.getFlightId());
+        requested.setUserMoney(this.getUserMoney());
         ObjectMapper objectMapper = new ObjectMapper();
         String json = null;
 
@@ -442,47 +371,48 @@ public class Reservation {
                 .withPayload(json)
                 .setHeader(MessageHeaders.CONTENT_TYPE, MimeTypeUtils.APPLICATION_JSON)
                 .build());
+
     }
-
-}
 ```
-- 재고관리 서비스에서는 도서예약 이벤트에 대해서 이를 수신하여 자신의 정책을 처리하도록 PolicyHandler 를 구현한다:
+- 결제 서비스에서는 항공권 예약 이벤트에 대해서 이를 수신하여 자신의 정책을 처리하도록 PolicyHandler 를 구현한다:
 
 ```
-package bookrental;
-
-...
-
-@Service
-public class PolicyHandler{
+@Autowired
+    PaymentRepository paymentRepository;
 
     @StreamListener(KafkaProcessor.INPUT)
-    public void wheneverRequested_Checkstock(@Payload Requested requested){
+    public void wheneverRequested_PayRequest(@Payload Requested requested){
+        System.out.println("============================= Kafka : " + requested);
 
-        if(requested.isMe()) {
-            stockRepository.findByBookid(requested.getBookid())
-                    .ifPresent(
-                            stock -> {
-                                long qty = stock.getQty();
+        if(requested.isMe()){
+            System.out.println("=============================");
+            System.out.println("requested");
 
-                                if (qty >= 1) {   # 재고량이 1개 이상 있으면
-                                    stock.setQty(qty - 1);  # 재고 차감 후 
-                                    stock.setStatus("revSucceeded");  # 예약완료 status set
-                                    stockRepository.save(stock);
-                                    System.out.println("set Stock -1");
-                                } else {
-                                    stock.setStatus("revFailed");   # 예약실패 status set
-                                    stockRepository.save(stock);
-                                    System.out.println("stock-out");
+            if(requested.getUserMoney()>=100){
+                paymentRepository.findByflightId(requested.getFlightId())
+                        .ifPresent(
+                                payment -> {
+
+                                        payment.setStatus("paySucceeded");
+                                        paymentRepository.save(payment);
+                                        System.out.println(": paySucceeded");
                                 }
-                            }
-                    )
-            ;
+                        );
+            }else{
+                paymentRepository.findByflightId(requested.getFlightId())
+                        .ifPresent(
+                                payment -> {
+
+                                    payment.setStatus("payFail");
+                                    paymentRepository.save(payment);
+                                    System.out.println(": payFail");
+                                }
+                        );
+            }
+
         }
+        System.out.println("=============================");
     }
-
-}
-
 ```
 이후, 재고 차감에 성공하고 예약이 완료되면 카톡 등으로 고객에게 카톡 등으로 알람을 보낸다. 
   
@@ -502,33 +432,7 @@ public class PolicyHandler{
 
 ```
 
-도서예약 시스템은 고객관리(알람) 시스템와 완전히 분리되어있으며, 이벤트 수신에 따라 처리되기 때문에, 고객관리 시스템이 유지보수로 인해 잠시 내려간 상태라도 예약을 받는데 문제가 없다:
-```
-# 고객관리 서비스 (customer) 를 잠시 내려놓음 (ctrl+c)
-
-# 재고 서비스 : 입고
-1. http POST localhost:8082/stocks bookid="1" qty=3
-
-# 예약 서비스 : 입고된 책 예약
-2. http POST localhost:8081/reservations bookid="1" userid="test1"    #Success
-
-# 예약 서비스 : 고객의 예약 상태가 '성공'임을 확인
-3. http GET localhost:8081/reservations/*
-```
-![image](https://user-images.githubusercontent.com/63623995/81771217-5de37780-951d-11ea-9918-0d6b6dc30531.png)
-```
-# 예약 완료 알람이 오지 않음
-
-# 고객관리 서비스 기동
-4. cd customermanagement
-mvn spring-boot:run
-
-# 고객관리 서비스 : 알람 확인
-5. "##### 예약 완료 되었습니다  #####"
-```
-![image](https://user-images.githubusercontent.com/63623995/81771166-3be9f500-951d-11ea-87bb-43f9f39b26d4.png)
-
-
+항공권 예약 시스템은 고객관리(알람) 시스템와 완전히 분리되어있으며, 이벤트 수신에 따라 처리되기 때문에, 고객관리 시스템이 유지보수로 인해 잠시 내려간 상태라도 예약을 받는데 문제가 없다:
 
 # 운영
 
@@ -550,163 +454,4 @@ mvn spring-boot:run
 - Release 설정(모두 동일)
 ![release2](https://user-images.githubusercontent.com/63623995/81764558-cd04a000-950c-11ea-91a4-018f0c2a3b87.png)
 ![release3](https://user-images.githubusercontent.com/63623995/81764561-ce35cd00-950c-11ea-9052-22c52c21e584.png)
-
-
-
-## Auto scaling 테스트
-
-■ 목표: 
-부하가 과다하게 발생 할 경우, POD가 자동으로 증설됨
-
-■ 테스트 절차: 
-서비스 처리에 대한 부하를 과다하게 유발 시켜 POD Auto-scaling 적용
-(로직에는 sleep 30적용을 통해 Java Thread 수행 시간이 오래 걸림)
-
-가. 부하 발생 전
-
-![image](https://user-images.githubusercontent.com/63623995/81773542-75256380-9523-11ea-8701-f64d2d1be91b.png)
-
-■ 결과: 
-Stress 테스트 통해 시스템 Capacity가 초과되는 Request 요청 시 HPA에 의해 POD자동 증가
-
-![image](https://user-images.githubusercontent.com/63623995/81773629-b453b480-9523-11ea-8b47-3c52d3ed1b17.png)
-
-■ 참고 자료: HPA설정 내역
-
-![image](https://user-images.githubusercontent.com/63623995/81773688-d77e6400-9523-11ea-8ee0-3e7ff0646373.png)
-
-
-
-## Auto-Healing 테스트
-
-■ 목표: 
-POD에 예상치 못한 장애가 발생 할 경우, POD가 자동으로 재부팅됨.
-
-■ 테스트 절차
-과도하게 오래 실행되는 로직을 다수 수행할 경우, WAS의 Java Thread 부족으로 인해 Hang 발생
-
-■ 테스트 명령어
-
-while [ true ]; do http POST bookstore.skcc.co.kr/reservations userid="user" bookid="1" status="selfHealingTest" & done
-
-■ 결과: 
-POD에 Hang 발생 시 liveness Probe 설정에 의해 자동으로 POD재부팅 됨.
-
-![image](https://user-images.githubusercontent.com/63623995/81774269-211b7e80-9525-11ea-8c2a-cf5f4cf9df96.png)
-
-■ 참고 자료: Probe 설정 내역
-
-![image](https://user-images.githubusercontent.com/63623995/81774336-44462e00-9525-11ea-907b-c4a3132db38c.png)
-
-## ConfigMap / Secret 적용
-
-■ 목표: 
-환경 변수 적용을 통해 용도 별 구분 인자값으로 활용
-
-■ 결과: 
-CnfigMap: 개발기/운영기 구분자료 활용
-kubectl exec -ti reservations2-6dd99458f8-ncfng -n bookstore env | egrep EMBED_TOMCAT_JAVA_OPTS
-EMBED_TOMCAT_JAVA_OPTS=-client
-
-Secret: DB접속 정보 저장 목적으로 활용
-kubectl exec -ti reservations2-6dd99458f8-ncfng -n bookstore env | egrep "DB_USER|DB_PASS"
-DB_USER=myuser
-DB_PASS=#skcc123
-
-■ 참고 자료: ConfigMap/Secret 설정 내역
-
-![image](https://user-images.githubusercontent.com/63623995/81774137-dac61f80-9524-11ea-8735-d26a99fe9aa2.png)
-		
-
-## Monitoring
-
-■ 목표:
-
-쿠버네티스 서비스 모니터링 구성
-POD의 상태가 비정상이거나, Node의 CPU/Memory 사용량이 비정상적으로 과도할 경우, 운영자에게 SMS으로 Alert함.
-
-■ 구성 내역: 
-
-Azure Monitor를 통해 CPU, Memory, POD등이 임계치를 초과 할 경우 SMS 발송 되도록 구성 함.
-![image](https://user-images.githubusercontent.com/63623995/81772858-e5cb8080-9521-11ea-8b46-59770e0ed5c0.png)
-
-
-## Alerting
-
-■ 목표: 
-
-쿠버네티스 서비스 모니터링 및 Alerting 구성
-POD의 상태가 비정상이거나, Node의 CPU/Memory 사용량이 비정상적으로 과도할 경우, 운영자에게 SMS으로 Alert함.
-
-■ 구성 내역: 
-
-Azure Monitor를 통해 CPU, Memory, POD등이 임계치를 초과 할 경우 SMS 발송 되도록 구성 함.
-![image](https://user-images.githubusercontent.com/63623995/81772923-0e537a80-9522-11ea-9074-a2b8d713caa1.png)
-
-
-## Persistent Volume
-
-■ 목표: 
-
-Persistent Volume 마운트를 통해 영구 데이터 저장
-해당 스토리지는 첨부 파일들을 저장하는데 사용 가능하며, Dynamic으로 유동성있게 구성함.
-
-■ 구성 결과: 
-
-root@mypod-azurefiles:/# df -h | grep azure
-//faee688dbf4284f62a1a567.file.core.windows.net/kubernetes-dynamic-pvc-d402c327-d428-4eb8-9f0d-072314cc6555  5.0G     0  5.0G   0% /mnt/azure
-
-■ 설정 내역: 
-
-[Storage Class]
-kind: StorageClass
-apiVersion: storage.k8s.io/v1
-metadata:
-  name: azurefile
-provisioner: kubernetes.io/azure-file
-mountOptions:
-  - dir_mode=0777
-  - file_mode=0777
-  - uid=0
-  - gid=0
-  - mfsymlinks
-  - cache=strict
-parameters:
-  skuName: Standard_LRS
-
-[PVC]
-apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  name: azurefile
-spec:
-  accessModes:
-    - ReadWriteMany
-  storageClassName: azurefile
-  resources:
-    requests:
-      storage: 5Gi
-[POD]
-kind: Pod
-apiVersion: v1
-metadata:
-  name: mypod-azurefiles
-spec:
-  containers:
-  - name: mypod
-    image: nginx:1.15.5
-    resources:
-      requests:
-        cpu: 100m
-        memory: 128Mi
-      limits:
-        cpu: 250m
-        memory: 256Mi
-    volumeMounts:
-    - mountPath: "/mnt/azure"
-      name: volume
-  volumes:
-    - name: volume
-      persistentVolumeClaim:
-        claimName: bookstore-azurefile
 
